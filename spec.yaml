@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: Shipping Service API
+  description: API for retrieving and managing shipping details for Dave's Pet Shop.
+  version: 1.0.0
+servers:
+  - url: https://api.davespetshop.com/v1
+    description: Production server
+  - url: https://staging.api.davespetshop.com/v1
+    description: Staging server
+
+paths:
+  /shipping/rates:
+    get:
+      summary: Get shipping rates for available carriers
+      tags:
+        - Shipping Rates
+      parameters:
+        - name: destinationPostalCode
+          in: query
+          required: true
+          schema:
+            type: string
+            description: The postal code of the shipping destination
+        - name: weight
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            description: The weight of the package in kilograms
+        - name: dimensions
+          in: query
+          required: false
+          schema:
+            type: string
+            description: The dimensions of the package in LxWxH format (e.g., 10x10x10)
+      responses:
+        '200':
+          description: A list of shipping rates from different carriers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingRate'
+        '400':
+          description: Invalid request parameters
+
+  /shipping/rates/{carrier}:
+    get:
+      summary: Get shipping rates for a specific carrier
+      tags:
+        - Shipping Rates
+      parameters:
+        - name: carrier
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The name of the carrier (e.g., FedEx, UPS)
+        - name: destinationPostalCode
+          in: query
+          required: true
+          schema:
+            type: string
+            description: The postal code of the shipping destination
+        - name: weight
+          in: query
+          required: true
+          schema:
+            type: number
+            format: float
+            description: The weight of the package in kilograms
+      responses:
+        '200':
+          description: The shipping rates for the specified carrier
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShippingRate'
+        '404':
+          description: Carrier not found
+
+  /shipping/track/{trackingNumber}:
+    get:
+      summary: Track a shipment
+      tags:
+        - Shipment Tracking
+      parameters:
+        - name: trackingNumber
+          in: path
+          required: true
+          schema:
+            type: string
+            description: The tracking number of the shipment
+      responses:
+        '200':
+          description: The tracking details of the shipment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipmentTracking'
+        '404':
+          description: Tracking number not found
+
+  /shipping/labels:
+    post:
+      summary: Create a shipping label
+      tags:
+        - Shipping Labels
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShippingLabelRequest'
+      responses:
+        '200':
+          description: Shipping label created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShippingLabelResponse'
+        '400':
+          description: Invalid request parameters
+
+  /shipping/zones:
+    get:
+      summary: Get a list of supported shipping zones
+      tags:
+        - Shipping Zones
+      responses:
+        '200':
+          description: A list of supported shipping zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: A supported shipping zone or region
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    ShippingRate:
+      type: object
+      properties:
+        carrier:
+          type: string
+          description: The name of the carrier (e.g., FedEx, UPS)
+        rate:
+          type: number
+          format: float
+          description: The shipping rate in the specified currency
+        estimatedDeliveryDate:
+          type: string
+          format: date
+          description: The estimated delivery date for the shipment
+        currency:
+          type: string
+          description: The currency of the shipping rate (e.g., USD)
+
+    ShipmentTracking:
+      type: object
+      properties:
+        trackingNumber:
+          type: string
+          description: The unique tracking number for the shipment
+        status:
+          type: string
+          description: The current status of the shipment (e.g., In Transit, Delivered)
+        lastUpdated:
+          type: string
+          format: date-time
+          description: The timestamp of the last update
+        estimatedDeliveryDate:
+          type: string
+          format: date
+          description: The estimated delivery date
+        history:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+                description: The timestamp of the event
+              location:
+                type: string
+                description: The location where the event occurred
+              status:
+                type: string
+                description: The status of the shipment at that time
+
+    ShippingLabelRequest:
+      type: object
+      properties:
+        senderAddress:
+          type: object
+          properties:
+            street:
+              type: string
+              description: The sender's street address
+            city:
+              type: string
+              description: The sender's city
+            postalCode:
+              type: string
+              description: The sender's postal code
+            country:
+              type: string
+              description: The sender's country
+        recipientAddress:
+          type: object
+          properties:
+            street:
+              type: string
+              description: The recipient's street address
+            city:
+              type: string
+              description: The recipient's city
+            postalCode:
+              type: string
+              description: The recipient's postal code
+            country:
+              type: string
+              description: The recipient's country
+        packageDetails:
+          type: object
+          properties:
+            weight:
+              type: number
+              format: float
+              description: The weight of the package in kilograms
+            dimensions:
+              type: string
+              description: The dimensions of the package in LxWxH format (e.g., 10x10x10)
+
+    ShippingLabelResponse:
+      type: object
+      properties:
+        labelUrl:
+          type: string
+          description: A URL to download the shipping label
+        trackingNumber:
+          type: string
+          description: The tracking number for the shipment
